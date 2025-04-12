@@ -1,0 +1,97 @@
+general:
+  debug: false
+  instance_name: ${SEARXNG_INSTANCE_NAME:-"Unified AI Platform Search"}
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: true
+
+search:
+  safe_search: 0
+  autocomplete: 'google'
+  default_lang: 'all'
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "${SEARXNG_SECRET_KEY:-change_me}"
+  base_url: ${SEARXNG_BASE_URL:-http://localhost:8080/}
+  image_proxy: true
+  http_protocol_version: "1.0"
+  method: "GET"
+  default_http_headers:
+    X-Content-Type-Options: nosniff
+    X-XSS-Protection: 1; mode=block
+    X-Download-Options: noopen
+    X-Robots-Tag: noindex, nofollow
+    Referrer-Policy: no-referrer
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+    categories: general
+    use_mobile_ui: true
+    disabled: false
+    
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    categories: general
+    disabled: false
+    
+  - name: brave
+    engine: brave
+    shortcut: b
+    categories: general
+    disabled: false
+    
+  - name: bing
+    engine: bing
+    shortcut: bi
+    categories: general
+    disabled: false
+    
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: w
+    categories: general
+    disabled: false
+    
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: st
+    categories: it
+    disabled: false
+    
+  - name: github
+    engine: github
+    shortcut: gh
+    categories: it
+    disabled: false
+    
+ui:
+  static_use_hash: true
+  default_theme: simple
+  theme_args:
+    simple_style: auto
+  results_on_new_tab: false
+  center_alignment: true
+  query_in_title: true
+  infinite_scroll: true
+  
+outgoing:
+  request_timeout: 5.0
+  useragent_suffix: ""
+  max_request_timeout: 10.0
+  pool_connections: 100
+  pool_maxsize: 10
+  enable_http2: true
+  proxies:
+    http:
+    https:
+    
+redis:
+  url: false

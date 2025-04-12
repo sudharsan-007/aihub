@@ -1,0 +1,160 @@
+general_settings:
+  # Authentication
+  master_key: ${LITELLM_MASTER_KEY}
+  disable_auth: false
+  
+  # User interface
+  admin_ui: true
+  disable_admin_ui_login: false
+  admin_ui_name: "Unified AI Platform - Admin"
+  
+  # Response behavior
+  streaming: true
+  drop_params: true
+  
+  # Telemetry
+  telemetry: false
+  
+  # Performance
+  num_workers: 4
+
+model_list:
+  # Text generation models from OpenRouter
+  - model_name: openai/gpt-3.5-turbo
+    litellm_params:
+      model: openrouter/openai/gpt-3.5-turbo
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+    model_info:
+      description: "GPT-3.5 Turbo via OpenRouter"
+      context_length: 16000
+      pricing:
+        input_cost_per_token: 0.000001
+        output_cost_per_token: 0.000002
+  
+  - model_name: openai/gpt-4
+    litellm_params:
+      model: openrouter/openai/gpt-4
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+    model_info:
+      description: "GPT-4 via OpenRouter"
+      context_length: 128000
+      pricing:
+        input_cost_per_token: 0.00001
+        output_cost_per_token: 0.00003
+  
+  - model_name: anthropic/claude-3-opus
+    litellm_params:
+      model: openrouter/anthropic/claude-3-opus
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+    model_info:
+      description: "Claude 3 Opus via OpenRouter"
+      context_length: 200000
+      pricing:
+        input_cost_per_token: 0.00001
+        output_cost_per_token: 0.00003
+  
+  - model_name: anthropic/claude-3-sonnet
+    litellm_params:
+      model: openrouter/anthropic/claude-3-sonnet
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+    model_info:
+      description: "Claude 3 Sonnet via OpenRouter"
+      context_length: 180000
+      pricing:
+        input_cost_per_token: 0.000003
+        output_cost_per_token: 0.000015
+
+  # Special wildcard for all OpenRouter models
+  - model_name: openrouter/*
+    litellm_params:
+      model: openrouter/{model}
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+
+  # Image generation models from EdenAI
+  - model_name: dalle-3
+    litellm_params:
+      model: edenai/stability/stable-diffusion-3
+      api_key: ${EDENAI_API_KEY}
+      api_base: https://api.edenai.run/v2
+    model_info:
+      description: "Stable Diffusion 3 via EdenAI"
+      pricing:
+        input_cost_per_token: 0.0
+        output_cost_per_image: 0.04
+  
+  - model_name: midjourney
+    litellm_params:
+      model: edenai/midjourney
+      api_key: ${EDENAI_API_KEY}
+      api_base: https://api.edenai.run/v2
+    model_info:
+      description: "Midjourney via EdenAI"
+      pricing:
+        input_cost_per_token: 0.0
+        output_cost_per_image: 0.1
+
+# Routing configuration to enable fallbacks and load balancing
+router_settings:
+  # Fallback strategy - if a model fails, try these in order
+  fallbacks: [
+    {
+      primary_model: "anthropic/claude-3-opus",
+      fallback_model: "anthropic/claude-3-sonnet"
+    },
+    {
+      primary_model: "openai/gpt-4",
+      fallback_model: "openai/gpt-3.5-turbo"
+    }
+  ]
+
+# Proxy configurations
+proxy_settings:
+  # OpenAI format API to allow easy integration
+  mode: openai_compatible
+  
+  # CORS settings for browser access
+  cors_allow_origins: ["*"]
+  
+  # Path blacklist to prevent accessing sensitive endpoints
+  path_blacklist:
+    - "/admin/billing/subscription"
+    - "/admin/usage"
+
+# Redis caching configuration
+cache:
+  type: redis
+  host: cache
+  port: 6379
+  ttl: 3600  # Cache responses for 1 hour
+  similarity_threshold: 0.85  # Threshold for semantic caching
+
+# Logging configuration
+logging:
+  level: info  # Options: debug, info, warning, error, critical
+  log_file: /app/litellm/logs/litellm.log
+  log_format: json
+
+# Budget tracking
+budget:
+  budget_thresholds:  # values in USD
+    day: 10      # Limit to $10 per day
+    week: 50     # Limit to $50 per week
+    month: 200   # Limit to $200 per month
+  notification_thresholds:
+    day: 0.7   # Notify at 70% of daily budget
+    week: 0.7  # Notify at 70% of weekly budget
+    month: 0.7 # Notify at 70% of monthly budget
+  enabled: true
+
+# Key management
+key_management:
+  # Maximum API keys that can exist
+  max_keys: 100
+  
+  # Require human-readable description for keys
+  require_description: true 

@@ -30,24 +30,35 @@ This project solves the problem of fragmented AI workflows by unifying multiple 
 - Code execution for computational tasks
 - Centralized logging and cost management
 
-## Deployment
+## Railway Deployment
 
-This project is optimized for deployment on Railway, with comprehensive deployment guides available in the documentation.
+This project is designed to be deployed on Railway.app, a container-based platform that simplifies deployment.
 
-```bash
-# Quick start with Docker Compose
-git clone https://github.com/yourusername/unified-ai-platform.git
-cd unified-ai-platform
-cp .env.example .env
-# Edit .env with your API keys
-docker-compose up -d
-```
+### Deployment Steps
+
+1. **Fork or Clone this Repository**
+   - Create your own copy of this repository on GitHub
+
+2. **Create a New Railway Project**
+   - Go to [Railway.app](https://railway.app) and create a new project
+   - Link your GitHub repository to the project
+
+3. **Configure Environment Variables**
+   - Add the required API keys in Railway's environment variables:
+     - `OPENROUTER_API_KEY`: Your OpenRouter API key
+     - `EDENAI_API_KEY`: Your EdenAI API key
+     - `LITELLM_MASTER_KEY`: Master key for LiteLLM access
+     - `JUPYTER_TOKEN`: Token for Jupyter authentication
+
+4. **Deploy**
+   - Railway will automatically build and deploy the project
+   - Access the services via the Railway-provided domains
 
 ## Documentation
 
-- [Railway Deployment Guide](./docs/railway-deployment-guide.mdx)
-- [OpenWebUI Configuration](./docs/openwebui-configuration.mdx)
-- [Platform Architecture](./docs/unified-platform-architecture.mdx)
+- [Railway Deployment Guide](docs/railway-deployment-guide.md)
+- [OpenWebUI Configuration](docs/openwebui-configuration.md)
+- [Platform Architecture](docs/unified-platform-architecture.md)
 
 ## License
 

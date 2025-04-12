@@ -1,0 +1,145 @@
+version: "3.8"
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    ports:
+      - "${PORT:-3000}:8080"
+    environment:
+      # API Connection
+      - OPENAI_API_BASE_URL=http://litellm:4000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      
+      # Authentication Settings
+      - ENABLE_SIGNUP=${ENABLE_SIGNUP:-true}
+      - ENABLE_LOGIN_FORM=${ENABLE_LOGIN_FORM:-true}
+      - DEFAULT_USER_ROLE=${DEFAULT_USER_ROLE:-admin}
+      
+      # Document Processing
+      - CONTENT_EXTRACTION_ENGINE=tika
+      - TIKA_SERVER_URL=http://tika:9998
+      - RAG_EMBEDDING_ENGINE=openai
+      - RAG_EMBEDDING_MODEL=text-embedding-3-small
+      - CHUNK_SIZE=1000
+      - CHUNK_OVERLAP=100
+      
+      # Web Search
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
+      - RAG_WEB_SEARCH_RESULT_COUNT=3
+      
+      # Code Execution
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
+      
+      # Image Generation
+      - ENABLE_IMAGE_GENERATION=true
+      - IMAGE_GENERATION_ENGINE=openai
+      
+      # UI Customization
+      - WEBUI_NAME=${WEBUI_NAME:-"Unified AI Platform"}
+      
+      # Security
+      - WEBUI_AUTH=true
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-"change-me-in-production"}
+    volumes:
+      - openwebui-data:/app/backend/data
+    depends_on:
+      - litellm
+      - tika
+      - searxng
+      - jupyter
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main
+    container_name: litellm
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    environment:
+      - LITELLM_CONFIG_PATH=/app/config.yaml
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - EDENAI_API_KEY=${EDENAI_API_KEY}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - LITELLM_PORT=4000
+      - LITELLM_HOST=0.0.0.0
+      - LITELLM_ADMIN_UI=true
+      - TELEMETRY=false
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml
+      - litellm-data:/app/litellm/logs
+    depends_on:
+      - cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cache:
+    image: redis:alpine
+    container_name: redis-cache
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  jupyter:
+    image: jupyter/minimal-notebook:latest
+    container_name: jupyter
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      - ./jupyter/startup.py:/home/jovyan/.ipython/profile_default/startup/00-setup.py
+      - jupyter-data:/home/jovyan/work
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/status"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+  tika:
+    image: apache/tika:latest-full
+    container_name: tika
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9998/tika"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+  searxng:
+    image: searxng/searxng
+    container_name: searxng
+    environment:
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-http://localhost:8080/}
+      - SEARXNG_INSTANCE_NAME=${SEARXNG_INSTANCE_NAME:-"Unified AI Platform Search"}
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-"change-me-in-production"}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml
+      - searxng-data:/etc/searxng
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+
+volumes:
+  openwebui-data:
+  litellm-data:
+  redis-data:
+  jupyter-data:
+  searxng-data: 
