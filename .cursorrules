@@ -1,0 +1,69 @@
+# Unified AI Platform Project Intelligence
+
+## Project Patterns
+
+1. **Containerization First**: All components of this platform are containerized using Docker. Any new functionality should follow this pattern.
+
+2. **Environment Variable Configuration**: All configuration should be done through environment variables to maintain flexibility and security.
+
+3. **Service Integration Pattern**: Services communicate internally via HTTP on the Docker network. New services should follow this pattern.
+
+4. **Centralized Model Access**: All AI model access goes through LiteLLM for unified logging, cost management, and fallbacks.
+
+5. **Documentation-Driven Development**: Maintain comprehensive documentation for all aspects of the platform.
+
+## File Organization
+
+- Configuration files should be placed at the repository root
+- Service-specific configurations should be in their own directories (e.g., `litellm/config.yaml`)
+- Documentation should be in the `docs/` directory
+
+## Naming Conventions
+
+- Docker container names: lowercase, descriptive (e.g., `openwebui`, `litellm`)
+- Configuration files: standard names (e.g., `docker-compose.yml`, `config.yaml`)
+- Environment variables: uppercase with underscores (e.g., `OPENROUTER_API_KEY`)
+
+## Critical Implementation Paths
+
+1. **Deployment Flow**:
+   - Repository setup → Railway project creation → Environment variable configuration → Domain setup → Testing
+
+2. **Service Dependencies**:
+   - Redis must be available before LiteLLM starts
+   - LiteLLM must be available before OpenWebUI can function properly
+   - Each service has its own configuration requirements
+
+3. **Security Considerations**:
+   - API keys must be secured as environment variables
+   - Admin interfaces should require authentication
+   - Only expose necessary ports
+
+## Workflow Preferences
+
+- Step-by-step documentation with clear section headings
+- Diagrams for complex architecture and flows
+- Tables for structured data presentation
+- Complete configuration examples
+
+## Project Evolution
+
+- Started as a deployment guide for unified AI platform
+- Focus on Railway as the deployment platform
+- Emphasis on documentation completeness
+- Future direction includes monitoring, user guides, and testing
+
+## Known Challenges
+
+- Railway limitations on volume backups
+- External API dependencies and potential rate limits
+- Configuration complexity requiring careful setup
+- Missing monitoring and observability
+
+## Tool Usage
+
+- GitHub for repository management
+- Docker and Docker Compose for containerization
+- Railway for deployment
+- Markdown for documentation
+- Mermaid for diagrams 

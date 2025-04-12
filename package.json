@@ -1,0 +1,23 @@
+{
+  "name": "aihub",
+  "version": "1.0.0",
+  "description": "A comprehensive, self-hosted AI platform combining OpenWebUI frontend with LiteLLM as a universal model proxy, along with supporting services for document processing, web search, and code execution.",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "keywords": ["ai", "llm", "openwebui", "litellm", "unified-ai"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mermaid": "^10.8.0",
+    "vitepress": "^1.0.0",
+    "vitepress-plugin-mermaid": "^2.0.16"
+  }
+}
