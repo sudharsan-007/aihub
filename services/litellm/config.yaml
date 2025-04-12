@@ -128,23 +128,22 @@ proxy_settings:
 # Redis caching configuration
 cache:
   type: redis
-  host: cache
-  port: 6379
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
   ttl: 3600  # Cache responses for 1 hour
   similarity_threshold: 0.85  # Threshold for semantic caching
 
 # Logging configuration
 logging:
   level: info  # Options: debug, info, warning, error, critical
-  log_file: /app/litellm/logs/litellm.log
   log_format: json
 
 # Budget tracking
 budget:
   budget_thresholds:  # values in USD
-    day: 10      # Limit to $10 per day
-    week: 50     # Limit to $50 per week
-    month: 200   # Limit to $200 per month
+    day: ${BUDGET_DAY:-10}
+    week: ${BUDGET_WEEK:-50}
+    month: ${BUDGET_MONTH:-200}
   notification_thresholds:
     day: 0.7   # Notify at 70% of daily budget
     week: 0.7  # Notify at 70% of weekly budget

@@ -20,6 +20,7 @@ This project solves the problem of fragmented AI workflows by unifying multiple 
 | Document Processing | Extract text from files | Apache Tika |
 | Web Search | Retrieve real-time information | SearXNG |
 | Code Execution | Run code snippets | Jupyter Notebook |
+| Caching | Reduce API calls | Redis |
 
 ## Key Features
 
@@ -32,33 +33,40 @@ This project solves the problem of fragmented AI workflows by unifying multiple 
 
 ## Railway Deployment
 
-This project is designed to be deployed on Railway.app, a container-based platform that simplifies deployment.
+This project uses a multi-service architecture for deployment on Railway.app, giving each component its own service and domain. This approach provides:
+
+- **Individual Scaling**: Scale services based on their specific needs
+- **Separate Domains**: Access each service via its own domain
+- **Independent Updates**: Update components without affecting others
+- **Better Resource Allocation**: Allocate resources where they're needed most
+
+### Deployment Structure
+
+The repository is organized into separate services in the `services/` directory:
+
+```
+services/
+├── openwebui/   # Frontend UI
+├── litellm/     # Model proxy
+├── tika/        # Document processing
+├── searxng/     # Web search
+├── jupyter/     # Code execution
+└── README.md    # Deployment instructions
+```
 
 ### Deployment Steps
 
-1. **Fork or Clone this Repository**
-   - Create your own copy of this repository on GitHub
-
-2. **Create a New Railway Project**
-   - Go to [Railway.app](https://railway.app) and create a new project
-   - Link your GitHub repository to the project
-
-3. **Configure Environment Variables**
-   - Add the required API keys in Railway's environment variables:
-     - `OPENROUTER_API_KEY`: Your OpenRouter API key
-     - `EDENAI_API_KEY`: Your EdenAI API key
-     - `LITELLM_MASTER_KEY`: Master key for LiteLLM access
-     - `JUPYTER_TOKEN`: Token for Jupyter authentication
-
-4. **Deploy**
-   - Railway will automatically build and deploy the project
-   - Access the services via the Railway-provided domains
+For detailed deployment instructions, see the [Services Deployment Guide](services/README.md).
 
 ## Documentation
 
 - [Railway Deployment Guide](docs/railway-deployment-guide.md)
 - [OpenWebUI Configuration](docs/openwebui-configuration.md)
 - [Platform Architecture](docs/unified-platform-architecture.md)
+
+## Previous Monolithic Approach
+
+The previous version of this project used a monolithic Docker Compose approach, which is still available in the `docker-compose.yml` file at the root of the repository. However, the multi-service approach is recommended for Railway deployment.
 
 ## License
 

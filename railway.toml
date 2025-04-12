@@ -1,0 +1,23 @@
+[build]
+# This is a monorepo configuration
+# Each service has its own configuration in its directory
+
+# Service definitions
+# These help Railway understand this is a monorepo
+[service.openwebui]
+path = "services/openwebui"
+
+[service.litellm]
+path = "services/litellm"
+
+[service.tika]
+path = "services/tika"
+
+[service.searxng]
+path = "services/searxng"
+
+[service.jupyter]
+path = "services/jupyter"
+
+# For Redis, use the Railway template
+# No path needed as it's a managed service 

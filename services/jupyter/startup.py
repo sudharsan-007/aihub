@@ -131,4 +131,4 @@ if not os.path.exists(welcome_path):
         f.write(welcome_notebook)
     print("✅ Created welcome notebook")
 
-print("\n✅ Jupyter environment setup complete!") 
+print("\n✅ Jupyter environment setup complete!")
