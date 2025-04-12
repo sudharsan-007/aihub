@@ -24,9 +24,13 @@ JUPYTER_TOKEN=your_secure_token
 
 ### Deployment Steps
 
-1. Ensure you have the `railway.json` and `Dockerfile` properly configured
+1. Ensure you have the `railway.json`, `Dockerfile`, `entrypoint.sh`, and `health_check.py` properly configured
 2. Deploy the service using the Railway web interface
 3. Once deployed, access the Jupyter Lab interface at the service URL
+
+### Health Check
+
+The service includes a dedicated health check endpoint at `/api/status` that Railway uses to verify the service is running properly. This is implemented as a separate lightweight HTTP server that runs alongside Jupyter.
 
 ## Features
 
