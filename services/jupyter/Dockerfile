@@ -1,12 +1,12 @@
 FROM jupyter/minimal-notebook:latest
 
-# Copy the scripts
+# Copy the startup script
 COPY startup.py /home/jovyan/.ipython/profile_default/startup/00-setup.py
-COPY entrypoint.sh /entrypoint.sh
-COPY health_check.py /health_check.py
 
 # Set environment variables
 ENV JUPYTER_ENABLE_LAB=yes
+ENV NB_UID=1000
+ENV NB_GID=100
 
 # Install additional dependencies
 USER root
@@ -14,9 +14,8 @@ RUN pip install requests
 
 # Run with the right permissions
 RUN chmod +x /home/jovyan/.ipython/profile_default/startup/00-setup.py
-RUN chmod +x /entrypoint.sh
-RUN chmod +x /health_check.py
+
+# Ensure we're running as jovyan user for security
 USER jovyan
 
-# Use our custom entrypoint script
-ENTRYPOINT ["/entrypoint.sh"] 
+# The entry point is handled by the Railway's custom start command 

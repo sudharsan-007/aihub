@@ -8,17 +8,8 @@
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
-    "healthcheckPath": "/api/status",
+    "healthcheckPath": "/login",
     "healthcheckTimeout": 300,
-    "restartPolicyDelaySeconds": 10,
-    "sleepApplication": false,
-    "envVars": {
-      "PYTHONUNBUFFERED": {
-        "value": "1"
-      },
-      "JUPYTER_TOKEN": {
-        "sync": true
-      }
-    }
+    "startCommand": "/bin/sh -c \"(echo ${JUPYTER_PASSWORD}; echo ${JUPYTER_PASSWORD}) | jupyter server password 2>&1 && chown ${NB_UID} /home/jovyan/.jupyter/jupyter_server_config.json && rm -rf ${RAILWAY_VOLUME_MOUNT_PATH}/lost+found && chown -R ${NB_UID} ${RAILWAY_VOLUME_MOUNT_PATH} && start.sh run-one-constantly jupyter lab 2>&1\""
   }
 } 
