@@ -1,7 +1,7 @@
 FROM jupyter/scipy-notebook:latest
 
 # Copy the startup script
-COPY startup.py /home/jovyan/.ipython/profile_default/startup/00-setup.py
+# COPY startup.py /home/jovyan/.ipython/profile_default/startup/00-setup.py
 
 # Set environment variables
 ENV JUPYTER_ENABLE_LAB=yes
