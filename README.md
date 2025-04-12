@@ -54,9 +54,35 @@ services/
 └── README.md    # Deployment instructions
 ```
 
-### Deployment Steps
+### Deployment Methods
 
-For detailed deployment instructions, see the [Services Deployment Guide](services/README.md).
+#### Method 1: Railway CLI (Recommended)
+
+The easiest way to deploy the multi-service architecture is using our CLI deployment script:
+
+1. Install Railway CLI:
+   ```bash
+   npm i -g @railway/cli
+   ```
+
+2. Login to Railway:
+   ```bash
+   railway login
+   ```
+
+3. Run the deployment script:
+   ```bash
+   ./railway-deploy-cli.sh
+   ```
+
+This script will:
+- Create each service in your Railway project
+- Deploy each service from its respective directory
+- Set up Redis using Railway's template
+
+#### Method 2: Manual Setup
+
+For detailed manual deployment instructions, see the [Services Deployment Guide](services/README.md).
 
 ## Documentation
 
