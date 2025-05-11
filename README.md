@@ -40,59 +40,74 @@ This project uses a multi-service architecture for deployment on Railway.app, gi
 - **Independent Updates**: Update components without affecting others
 - **Better Resource Allocation**: Allocate resources where they're needed most
 
-### Deployment Structure
+### Current Deployment Architecture
 
-The repository is organized into separate services in the `services/` directory:
+The platform consists of the following services deployed directly on Railway using official prebuilt Docker images:
 
-```
-services/
-├── openwebui/   # Frontend UI
-├── litellm/     # Model proxy
-├── tika/        # Document processing
-├── searxng/     # Web search
-├── jupyter/     # Code execution
-└── README.md    # Deployment instructions
-```
+1. **OpenWebUI** - Frontend interface for user interactions
+   - Image: `ghcr.io/open-webui/open-webui:latest`
+   - URL: `https://openwebui-production-[hash].up.railway.app`
 
-### Deployment Methods
+2. **LiteLLM** - Model proxy for unified AI model access
+   - Image: `ghcr.io/berriai/litellm:main`
+   - URL: `https://litellm-ruog-production.up.railway.app`
 
-#### Method 1: Railway CLI (Recommended)
+3. **Redis** - Caching layer for improved performance
+   - Image: `redis:alpine`
+   - Internal access only
 
-The easiest way to deploy the multi-service architecture is using our CLI deployment script:
+4. **PostgreSQL** - Database for LiteLLM
+   - Uses Railway's managed PostgreSQL
+   - Internal access only
 
-1. Install Railway CLI:
-   ```bash
-   npm i -g @railway/cli
-   ```
+5. **Tika** - Document processing service
+   - Image: `apache/tika:latest-full`
+   - URL: `https://tika-production.up.railway.app`
 
-2. Login to Railway:
-   ```bash
-   railway login
-   ```
+6. **SearXNG** - Privacy-focused web search engine
+   - Image: `searxng/searxng`
+   - URL: `https://searxng-production-4499.up.railway.app`
 
-3. Run the deployment script:
-   ```bash
-   ./railway-deploy-cli.sh
-   ```
+7. **JupyterLab** - Interactive code execution environment
+   - Image: `jupyter/minimal-notebook:latest`
+   - URL: `https://jupyterlab-production-bbcb.up.railway.app`
 
-This script will:
-- Create each service in your Railway project
-- Deploy each service from its respective directory
-- Set up Redis using Railway's template
+### Service Connectivity
 
-#### Method 2: Manual Setup
+Services communicate with each other using Railway's internal network:
 
-For detailed manual deployment instructions, see the [Services Deployment Guide](services/README.md).
+- OpenWebUI connects to LiteLLM for model access
+- OpenWebUI connects to Tika for document processing
+- OpenWebUI connects to SearXNG for web search capabilities
+- OpenWebUI connects to JupyterLab for code execution
+- LiteLLM connects to Redis for caching
+- LiteLLM connects to PostgreSQL for data storage
+- SearXNG connects to Redis for rate limiting
+
+### Deployment Steps
+
+To replicate this deployment:
+
+1. Create a new project on Railway.app
+2. Deploy each service using the corresponding Docker image
+3. Configure environment variables for proper interconnection
+4. Create volumes for persistent data storage
+5. Set up internal networking using Railway's built-in DNS
+
+## Access Points
+
+- **Main UI**: Access OpenWebUI at your assigned Railway domain
+- **Admin Interface**: Access LiteLLM admin at `/admin` path on the LiteLLM domain
+- **Code Execution**: Access JupyterLab directly through its assigned domain
+- **Document Processing**: Tika is used internally by OpenWebUI
+- **Web Search**: SearXNG is used internally by OpenWebUI
 
 ## Documentation
 
-- [Railway Deployment Guide](docs/railway-deployment-guide.md)
-- [OpenWebUI Configuration](docs/openwebui-configuration.md)
+For more detailed information:
+
 - [Platform Architecture](docs/unified-platform-architecture.md)
-
-## Previous Monolithic Approach
-
-The previous version of this project used a monolithic Docker Compose approach, which is still available in the `docker-compose.yml` file at the root of the repository. However, the multi-service approach is recommended for Railway deployment.
+- [OpenWebUI Configuration](docs/openwebui-configuration.md)
 
 ## License
 

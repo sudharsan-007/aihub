@@ -1,0 +1,17 @@
+model_list:
+  - model_name: openrouter-all
+    litellm_params:
+      model: "openrouter/*"
+      api_key: "${OPENROUTER_API_KEY}"
+      timeout: 60  # Increased timeout for model loading
+
+general_settings:
+  completion_to_prompt: true
+  default_fallback_strategy: "longest_context"
+  max_retries: 3
+
+router_settings:
+  expose_ui: true
+  num_workers: 8   # Increase worker count for concurrent model loading
+  model_group_alias:
+    openrouter-all: ["openrouter/*"] 

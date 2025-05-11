@@ -1,6 +1,6 @@
 # Unified AI Platform Architecture
 
-This document provides a technical overview of the Unified AI Platform architecture, components, and integration patterns.
+This document provides a technical overview of the Unified AI Platform architecture, components, and integration patterns as implemented on Railway.
 
 ## Table of Contents
 
@@ -10,50 +10,48 @@ This document provides a technical overview of the Unified AI Platform architect
   - [Core Components](#core-components)
     - [Frontend: OpenWebUI](#frontend-openwebui)
     - [Model Proxy: LiteLLM](#model-proxy-litellm)
+    - [Database: PostgreSQL](#database-postgresql)
+    - [Caching: Redis](#caching-redis)
     - [Document Processing: Apache Tika](#document-processing-apache-tika)
     - [Web Search: SearXNG](#web-search-searxng)
     - [Code Execution: Jupyter Notebook](#code-execution-jupyter-notebook)
-    - [Caching: Redis](#caching-redis)
   - [Integration Architecture](#integration-architecture)
   - [Network Architecture](#network-architecture)
-    - [Internal Container Network](#internal-container-network)
+    - [Railway Internal Network](#railway-internal-network)
     - [External Access Points](#external-access-points)
-  - [Configuration Files](#configuration-files)
-    - [docker-compose.yml](#docker-composeyml)
-    - [litellm/config.yaml](#litellmconfigyaml)
+  - [Service Configuration](#service-configuration)
   - [Data Flow](#data-flow)
   - [Security Considerations](#security-considerations)
     - [API Key Management](#api-key-management)
     - [Authentication](#authentication)
-    - [Container Isolation](#container-isolation)
-  - [Customization Options](#customization-options)
-    - [Adding New Models](#adding-new-models)
-    - [Integrating Additional Services](#integrating-additional-services)
+    - [Service Isolation](#service-isolation)
   - [Performance Considerations](#performance-considerations)
     - [Caching Strategy](#caching-strategy)
-    - [Resource Requirements](#resource-requirements)
-  - [Monitoring and Logging](#monitoring-and-logging)
-    - [LiteLLM Logging](#litellm-logging)
-    - [Container Logs](#container-logs)
-  - [Railway-Specific Architecture](#railway-specific-architecture)
-  - [Conclusion](#conclusion)
+    - [Resource Allocation](#resource-allocation)
+  - [Monitoring and Maintenance](#monitoring-and-maintenance)
+    - [Service Monitoring](#service-monitoring)
+    - [Upgrade Strategy](#upgrade-strategy)
+    - [Backup Procedures](#backup-procedures)
 
 ## System Overview
 
-The Unified AI Platform integrates multiple AI services through a single interface, allowing users to access various AI capabilities without switching between different tools and applications.
+The Unified AI Platform integrates multiple AI services through a single interface, allowing users to access various AI capabilities without switching between different tools and applications. The architecture is implemented as a collection of microservices deployed on Railway.
 
 ```mermaid
 graph TD
     Client[Client Browser] --> OWU[OpenWebUI]
     
-    subgraph "Container Stack"
+    subgraph "Railway Platform"
         OWU --> LITELLM[LiteLLM Proxy]
         OWU --> TIKA[Apache Tika]
         OWU --> JUPYTER[Jupyter Notebook]
         OWU --> SEARXNG[SearXNG]
         
         LITELLM --> REDIS[Redis Cache]
+        LITELLM --> POSTGRES[PostgreSQL Database]
         LITELLM --> APIS[External APIs]
+        
+        SEARXNG --> REDIS
     end
     
     APIS --> OR[OpenRouter]
@@ -65,6 +63,7 @@ graph TD
     style LITELLM fill:#FF9800
     style APIS fill:#9C27B0
     style REDIS fill:#795548
+    style POSTGRES fill:#607D8B
     style TIKA fill:#009688
     style JUPYTER fill:#607D8B
     style SEARXNG fill:#3F51B5
@@ -76,11 +75,19 @@ graph TD
 
 OpenWebUI provides a modern, responsive interface for interacting with AI models and services. It serves as the central access point for all platform features.
 
+**Implementation Details:**
+- Docker Image: `ghcr.io/open-webui/open-webui:latest`
+- Environment Configuration:
+  - Connects to LiteLLM API for model access
+  - Connects to Tika for document processing
+  - Connects to SearXNG for web search
+  - Connects to JupyterLab for code execution
+
 **Key Features:**
 - Chat interface with message history
 - Document upload and management for RAG
 - Knowledge base creation and management
-- Code execution environment
+- Code execution through JupyterLab integration
 - Model selection and parameter adjustment
 - Admin interface for system configuration
 
@@ -88,18 +95,45 @@ OpenWebUI provides a modern, responsive interface for interacting with AI models
 
 LiteLLM acts as a universal API proxy, allowing a single interface to connect to multiple AI model providers.
 
+**Implementation Details:**
+- Docker Image: `ghcr.io/berriai/litellm:main`
+- Storage: PostgreSQL database for configuration and logs
+- Caching: Redis for response caching
+
 **Key Capabilities:**
 - Unified API format (OpenAI-compatible)
-- Support for multiple model providers
+- Support for multiple model providers (OpenRouter, EdenAI, etc.)
 - Request routing and load balancing
-- Response caching
+- Response caching through Redis
 - Cost tracking and budget management
-- Fallback strategies
 - API key management
+- Admin UI for configuration
+
+### Database: PostgreSQL
+
+PostgreSQL provides persistent storage for LiteLLM configuration, API keys, and usage logs.
+
+**Implementation Details:**
+- Service: Railway managed PostgreSQL instance
+- Usage: Stores LiteLLM configuration, models, and usage data
+
+### Caching: Redis
+
+Redis provides high-performance caching for LiteLLM responses, reducing API costs and improving response times.
+
+**Implementation Details:**
+- Docker Image: `redis:alpine`
+- Usage:
+  - LiteLLM response caching
+  - Rate limiting for SearXNG
 
 ### Document Processing: Apache Tika
 
 Apache Tika extracts text and metadata from various document formats for use in RAG systems.
+
+**Implementation Details:**
+- Docker Image: `apache/tika:latest-full`
+- Access: HTTP API on default port
 
 **Supported Formats:**
 - PDF
@@ -113,6 +147,10 @@ Apache Tika extracts text and metadata from various document formats for use in 
 
 SearXNG provides private, metasearch capabilities that allow AI models to retrieve up-to-date information from the web.
 
+**Implementation Details:**
+- Docker Image: `searxng/searxng`
+- Configuration: Custom instance name and secret key
+
 **Benefits:**
 - Privacy-preserving search
 - No API key required
@@ -123,16 +161,16 @@ SearXNG provides private, metasearch capabilities that allow AI models to retrie
 
 Jupyter Notebook enables safe execution of code generated or requested by AI models.
 
+**Implementation Details:**
+- Docker Image: `jupyter/minimal-notebook:latest`
+- Authentication: Password-based access
+
 **Features:**
 - Support for multiple programming languages
 - Interactive execution environment
 - Data visualization
 - Isolated execution environment
 - Token-based authentication
-
-### Caching: Redis
-
-Redis provides high-performance caching for LiteLLM responses, reducing API costs and improving response times.
 
 ## Integration Architecture
 
@@ -143,298 +181,173 @@ sequenceDiagram
     participant LiteLLM
     participant ModelAPI as External Model API
     participant Redis
+    participant Tika
+    participant SearXNG
+    participant Jupyter
     
-    User->>OpenWebUI: Send prompt
-    OpenWebUI->>LiteLLM: Forward request
+    User->>OpenWebUI: Send prompt/request
     
-    LiteLLM->>Redis: Check cache
+    alt Text Generation
+        OpenWebUI->>LiteLLM: Forward text request
+        LiteLLM->>Redis: Check cache
+        
+        alt Cache Hit
+            Redis-->>LiteLLM: Return cached response
+            LiteLLM-->>OpenWebUI: Return response
+        else Cache Miss
+            LiteLLM->>ModelAPI: Forward to model provider
+            ModelAPI-->>LiteLLM: Return response
+            LiteLLM->>Redis: Cache response
+            LiteLLM-->>OpenWebUI: Return response
+        end
     
-    alt Cache Hit
-        Redis-->>LiteLLM: Return cached response
-        LiteLLM-->>OpenWebUI: Return response
-    else Cache Miss
-        LiteLLM->>ModelAPI: Forward to model provider
-        ModelAPI-->>LiteLLM: Return response
-        LiteLLM->>Redis: Cache response
-        LiteLLM-->>OpenWebUI: Return response
+    else Document Processing
+        OpenWebUI->>Tika: Extract document content
+        Tika-->>OpenWebUI: Return extracted text
+        OpenWebUI->>LiteLLM: Generate embeddings
+        LiteLLM-->>OpenWebUI: Return embeddings
+    
+    else Web Search
+        OpenWebUI->>SearXNG: Execute search query
+        SearXNG-->>OpenWebUI: Return search results
+        OpenWebUI->>LiteLLM: Enhance with search results
+        LiteLLM-->>OpenWebUI: Return enhanced response
+    
+    else Code Execution
+        OpenWebUI->>Jupyter: Execute code
+        Jupyter-->>OpenWebUI: Return execution result
     end
     
-    OpenWebUI-->>User: Display response
+    OpenWebUI-->>User: Display final response
 ```
 
 ## Network Architecture
 
-### Internal Container Network
+### Railway Internal Network
 
-All services communicate over an internal Docker network, with OpenWebUI as the primary interface to other services.
+All services communicate over Railway's internal network for enhanced security and performance. Services are connected using Railway's reference variables to enable visualization in the Architecture UI.
 
-| Service | Internal Port | External Port | Internal URL |
-|---------|--------------|--------------|--------------|
-| OpenWebUI | 8080 | 3000 | http://openwebui:8080 |
-| LiteLLM | 4000 | 4000 | http://litellm:4000 |
-| Jupyter | 8888 | N/A | http://jupyter:8888 |
-| Tika | 9998 | N/A | http://tika:9998 |
-| SearXNG | 8080 | N/A | http://searxng:8080 |
-| Redis | 6379 | N/A | redis://cache:6379 |
+| Service | Internal Domain | External Domain | Reference Variable Example |
+|---------|----------------|----------------|---------|
+| OpenWebUI | openwebui.railway.internal | [generated-domain].up.railway.app | N/A (consumer service) |
+| LiteLLM | litellm.railway.internal | [generated-domain].up.railway.app | `${{litellm-ruOg.RAILWAY_PUBLIC_DOMAIN}}` |
+| PostgreSQL | [db-instance].railway.internal | N/A | Database connection string |
+| Redis | redis.railway.internal | N/A | `${{redis.RAILWAY_PRIVATE_DOMAIN}}` |
+| Tika | tika.railway.internal | [generated-domain].up.railway.app | `${{tika.RAILWAY_PUBLIC_DOMAIN}}` |
+| SearXNG | searxng.railway.internal | [generated-domain].up.railway.app | `${{searxng.RAILWAY_PUBLIC_DOMAIN}}` |
+| JupyterLab | jupyterlab.railway.internal | [generated-domain].up.railway.app | `${{JupyterLab.RAILWAY_PUBLIC_DOMAIN}}` |
+
+**Service Connection Pattern:**
+- Services connect using Railway's reference variables syntax (`${{service.VARIABLE}}`)
+- Private connections use `RAILWAY_PRIVATE_DOMAIN` for internal traffic
+- Public connections use `RAILWAY_PUBLIC_DOMAIN` for external access
+- Port references use `RAILWAY_TCP_APPLICATION_PORT` for dynamic port assignments
+
+This reference variable approach ensures that:
+1. Service connections are visible in the Railway Architecture UI
+2. Configuration automatically updates if domains or ports change
+3. Services can be moved or renamed with minimal reconfiguration
 
 ### External Access Points
 
-Only two services are exposed externally:
-1. **OpenWebUI** (port 3000) - Main user interface
-2. **LiteLLM** (port 4000) - Admin configuration interface
+Only certain services are exposed publicly:
 
-## Configuration Files
+1. **OpenWebUI** - Main user interface
+2. **LiteLLM** - Admin configuration interface
+3. **Tika** - Document processing API
+4. **SearXNG** - Search engine interface
+5. **JupyterLab** - Code execution environment
 
-### docker-compose.yml
+## Service Configuration
 
-The `docker-compose.yml` file defines all services and their relationships:
+Services are configured through environment variables set in the Railway dashboard. Each service has its own set of configuration parameters:
 
-```yaml
-version: "3.8"
-services:
-  openwebui:
-    image: ghcr.io/open-webui/open-webui:latest
-    ports:
-      - "3000:8080"
-    environment:
-      - OPENAI_API_BASE_URL=http://litellm:4000/v1
-      - OPENAI_API_KEY=${LITELLM_MASTER_KEY}
-      - CONTENT_EXTRACTION_ENGINE=tika
-      - TIKA_SERVER_URL=http://tika:9998
-      - ENABLE_RAG_WEB_SEARCH=true
-      - RAG_WEB_SEARCH_ENGINE=searxng
-      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
-    volumes:
-      - openwebui-data:/app/backend/data
-    depends_on:
-      - litellm
-      - tika
-      - searxng
-
-  litellm:
-    image: ghcr.io/berriai/litellm:main
-    ports:
-      - "4000:4000"
-    environment:
-      - LITELLM_CONFIG_PATH=/app/config.yaml
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - EDENAI_API_KEY=${EDENAI_API_KEY}
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
-    volumes:
-      - ./litellm/config.yaml:/app/config.yaml
-    depends_on:
-      - cache
-
-  cache:
-    image: redis:alpine
-    volumes:
-      - redis-data:/data
-
-  jupyter:
-    image: jupyter/minimal-notebook:latest
-    environment:
-      - JUPYTER_TOKEN=${JUPYTER_TOKEN}
-    volumes:
-      - jupyter-data:/home/jovyan/work
-
-  tika:
-    image: apache/tika:latest-full
-
-  searxng:
-    image: searxng/searxng
-    environment:
-      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-http://localhost:8080/}
-    volumes:
-      - searxng-data:/etc/searxng
-
-volumes:
-  openwebui-data:
-  redis-data:
-  jupyter-data:
-  searxng-data:
-```
-
-### litellm/config.yaml
-
-This configuration defines available models and LiteLLM settings:
-
-```yaml
-model_list:
-  # Text models via OpenRouter
-  - model_name: gpt-3.5-turbo
-    litellm_params:
-      model: openrouter/openai/gpt-3.5-turbo
-      api_key: ${OPENROUTER_API_KEY}
-
-  - model_name: gpt-4
-    litellm_params:
-      model: openrouter/openai/gpt-4
-      api_key: ${OPENROUTER_API_KEY}
-  
-  - model_name: claude-3-opus
-    litellm_params:
-      model: openrouter/anthropic/claude-3-opus
-      api_key: ${OPENROUTER_API_KEY}
-
-  # Image models via EdenAI
-  - model_name: dall-e-3
-    litellm_params:
-      model: edenai/openai/dall-e-3
-      api_key: ${EDENAI_API_KEY}
-  
-  - model_name: midjourney
-    litellm_params:
-      model: edenai/midjourney/v6
-      api_key: ${EDENAI_API_KEY}
-
-general_settings:
-  completion_to_prompt: true
-  default_fallback_strategy: "longest_context"
-  
-  cache: true
-  cache_params:
-    type: "redis"
-    host: "cache"
-    port: 6379
-    
-  log_level: "info"
-
-router_settings:
-  expose_ui: true
-  ui_username: "${LITELLM_UI_USERNAME:-admin}"
-  ui_password: "${LITELLM_UI_PASSWORD:-${LITELLM_MASTER_KEY}}"
-```
+- **OpenWebUI**: Configured to connect to other services and customize UI appearance
+- **LiteLLM**: Configured with API provider keys and performance settings
+- **PostgreSQL**: Standard database connection parameters
+- **Redis**: No special configuration required (defaults)
+- **Tika**: No special configuration required (defaults)
+- **SearXNG**: Configured with instance name and security settings
+- **JupyterLab**: Configured with authentication parameters
 
 ## Data Flow
 
-```mermaid
-flowchart TD
-    subgraph User["User Actions"]
-        A1[Text Query]
-        A2[Image Generation]
-        A3[Document Upload]
-        A4[Code Execution]
-        A5[Web Search]
-    end
+1. **User Requests**:
+   - Users interact with OpenWebUI for all AI operations
+   - OpenWebUI routes requests to appropriate backend services
 
-    subgraph Platform["Platform Services"]
-        B1[OpenWebUI]
-        B2[LiteLLM]
-        B3[Tika]
-        B4[Jupyter]
-        B5[SearXNG]
-        B6[Redis Cache]
-    end
+2. **Text Generation**:
+   - OpenWebUI sends prompt to LiteLLM
+   - LiteLLM checks Redis cache
+   - If cache miss, LiteLLM forwards to external API
+   - Response is cached and returned
 
-    subgraph External["External APIs"]
-        C1[OpenRouter]
-        C2[EdenAI]
-        C3[Other APIs]
-    end
+3. **Document Processing**:
+   - Documents uploaded to OpenWebUI
+   - OpenWebUI sends to Tika for extraction
+   - Extracted text is processed and stored
+   - Text can be used for RAG queries
 
-    A1 --> B1
-    A2 --> B1
-    A3 --> B1
-    A4 --> B1
-    A5 --> B1
+4. **Web Search**:
+   - OpenWebUI sends search query to SearXNG
+   - SearXNG aggregates results from search engines
+   - Results are integrated into AI responses
 
-    B1 --> B2
-    B1 --> B3
-    B1 --> B4
-    B1 --> B5
-
-    B2 --> B6
-    B6 --> B2
-
-    B2 --> C1
-    B2 --> C2
-    B2 --> C3
-```
+5. **Code Execution**:
+   - Code sent from OpenWebUI to JupyterLab
+   - JupyterLab executes and returns results
+   - Results displayed in OpenWebUI
 
 ## Security Considerations
 
 ### API Key Management
 
-API keys are stored as environment variables and never exposed to end users. The LiteLLM proxy acts as an abstraction layer, allowing the frontend to communicate with AI providers without direct access to API keys.
+- API keys stored securely as environment variables
+- LiteLLM master key used for authentication
+- External provider keys (OpenRouter, EdenAI) secured in LiteLLM
 
 ### Authentication
 
-1. **User Authentication**: OpenWebUI provides user management with role-based access control
-2. **Service Authentication**: 
-   - LiteLLM UI is protected with username/password
-   - Jupyter requires a token for access
-   - Internal services are not exposed externally
+- OpenWebUI requires user authentication
+- JupyterLab secured with token authentication
+- LiteLLM admin UI password protected
 
-### Container Isolation
+### Service Isolation
 
-Each service runs in its own container with limited permissions and access to resources.
-
-## Customization Options
-
-### Adding New Models
-
-To add new models, update the `litellm/config.yaml` file:
-
-```yaml
-model_list:
-  # Add your new model
-  - model_name: new-model-name
-    litellm_params:
-      model: provider/model-identifier
-      api_key: ${PROVIDER_API_KEY}
-```
-
-### Integrating Additional Services
-
-1. Add the service to the `docker-compose.yml` file
-2. Configure OpenWebUI to communicate with the new service
-3. Update environment variables and volumes as needed
+- Services operate in isolated containers
+- Internal communication uses Railway's secure network
+- Limited external exposure of services
 
 ## Performance Considerations
 
 ### Caching Strategy
 
-LiteLLM implements response caching via Redis to:
-- Reduce API costs by reusing identical requests
-- Decrease response time for common queries
-- Reduce load on external APIs
+- LiteLLM uses Redis for caching responses
+- Reduces duplicate API calls and costs
+- Improves response times for common queries
 
-### Resource Requirements
+### Resource Allocation
 
-Minimum recommended resources for the full platform:
-- 2 CPU cores
-- 4GB RAM
-- 20GB storage
+- Each service can be independently scaled
+- Railway automatically handles container orchestration
+- Services can be assigned appropriate resources based on needs
 
-For optimal performance:
-- 4+ CPU cores
-- 8+ GB RAM
-- 50+ GB storage (especially for document storage)
+## Monitoring and Maintenance
 
-## Monitoring and Logging
+### Service Monitoring
 
-### LiteLLM Logging
+- Railway dashboard provides service status
+- Logs available for each service
+- Health checks can be implemented for critical services
 
-LiteLLM provides comprehensive logging of:
-- Request volume
-- Token usage
-- API costs
-- Errors and retries
+### Upgrade Strategy
 
-### Container Logs
+- Services can be updated individually
+- Docker images tagged with specific versions for stability
+- Testing recommended before updating production services
 
-All container logs are accessible through the Docker or Railway interface.
+### Backup Procedures
 
-## Railway-Specific Architecture
-
-When deployed on Railway, the platform benefits from:
-
-1. **Automatic scaling**: Railway can scale resources based on demand
-2. **Managed networking**: Railway handles port mapping and domains
-3. **Environment variable management**: Secure storage of API keys
-4. **Persistent volumes**: Data is preserved between deployments
-5. **Automatic restarts**: Failed containers are restarted automatically
-
-## Conclusion
-
-The Unified AI Platform provides a comprehensive, self-hosted alternative to commercial AI platforms, with centralized management of models, data, and services. By leveraging open-source components and a modular architecture, it delivers a flexible and extensible system that can be customized to specific needs while maintaining seamless integration between all components. 
+- Database backups for PostgreSQL
+- Volume backups for OpenWebUI data
+- Regular exports of important configurations 
